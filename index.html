@@ -107,16 +107,16 @@
             
             // Determine command based on joystick position
             const deltaX = x - centerX;
-            const deltaY = centerY - y;  // Inverted Y axis
+            const deltaY = y - centerY;
             const threshold = 30;
             
             let newCommand = 'S';
             if (Math.abs(deltaY) > Math.abs(deltaX)) {
-                if (deltaY > threshold) newCommand = 'F';
-                else if (deltaY < -threshold) newCommand = 'B';
+                if (deltaY < -threshold) newCommand = 'F';  // Up = Forward
+                else if (deltaY > threshold) newCommand = 'B';  // Down = Backward
             } else {
-                if (deltaX > threshold) newCommand = 'R';
-                else if (deltaX < -threshold) newCommand = 'L';
+                if (deltaX > threshold) newCommand = 'R';  // Right
+                else if (deltaX < -threshold) newCommand = 'L';  // Left
             }
             
             if (newCommand !== currentCommand) {
