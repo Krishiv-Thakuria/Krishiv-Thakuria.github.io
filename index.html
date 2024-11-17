@@ -1,62 +1,37 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html>
 <head>
     <title>CodeCell GPT Interface</title>
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            max-width: 800px; 
-            margin: 0 auto; 
-            padding: 20px;
-        }
-        button { 
-            padding: 10px; 
-            margin: 5px; 
-        }
-        textarea {
-            width: 100%;
-            height: 100px;
-            margin: 10px 0;
-        }
-        #response {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-top: 10px;
-            min-height: 100px;
-        }
-    </style>
+    <!-- ... same styles ... -->
 </head>
 <body>
-    <h1>CodeCell GPT Interface</h1>
-    <button id="connectBle">Connect to CodeCell</button>
-    <textarea id="prompt" placeholder="Enter your prompt here..."></textarea>
-    <button id="sendPrompt">Send to GPT</button>
-    <div id="response"></div>
-
+    <!-- ... same HTML ... -->
     <script>
-        let bleDevice;
-        let bleCharacteristic;
-        const serviceUuid = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
-        const characteristicUuid = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
-
-        async function connectBle() {
+        async function sendToGPT() {
+            const prompt = document.getElementById('prompt').value;
+            
             try {
-                bleDevice = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: 'CodeCell-BLE' }],
-                    optionalServices: [serviceUuid]
+                // Call our backend instead of OpenAI directly
+                const response = await fetch('/api/gpt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-3.5-turbo",
+                        messages: [{
+                            role: "user",
+                            content: prompt
+                        }]
+                    })
                 });
 
-                const server = await bleDevice.gatt.connect();
-                const service = await server.getPrimaryService(serviceUuid);
-                bleCharacteristic = await service.getCharacteristic(characteristicUuid);
-
-                document.getElementById('connectBle').textContent = 'Connected!';
+                const data = await response.json();
+                // ... rest of the code ...
             } catch (error) {
-                console.error('Bluetooth Error:', error);
+                console.error('Error:', error);
             }
         }
-
-        document.getElementById('connectBle').addEventListener('click', connectBle);
     </script>
 </body>
 </html>
