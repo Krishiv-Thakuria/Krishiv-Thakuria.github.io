@@ -17,11 +17,25 @@ body {
 h1 {
     color: #333;
     text-align: center;
+    margin-bottom: 30px;
 }
 
 .connection-status {
     margin: 20px 0;
     text-align: center;
+}
+
+.api-key-section {
+    margin: 20px 0;
+    text-align: center;
+}
+
+#apiKey {
+    width: 300px;
+    padding: 10px;
+    margin-right: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
 }
 
 button {
@@ -67,6 +81,7 @@ textarea {
     border-radius: 5px;
     min-height: 100px;
     border: 1px solid #ddd;
+    white-space: pre-wrap;
 }
 
 #statusText {
