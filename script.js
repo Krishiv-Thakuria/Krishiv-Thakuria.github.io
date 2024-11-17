@@ -20,7 +20,6 @@ async function connectBle() {
         document.getElementById('connectBle').textContent = 'Connected!';
         document.getElementById('statusText').textContent = 'Connected to CodeCell';
         
-        // Listen for disconnection
         bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
     } catch (error) {
         console.error('Bluetooth Error:', error);
@@ -34,19 +33,12 @@ function onDisconnected() {
     bleCharacteristic = null;
 }
 
-async function sendToBle(text) {
-    if (bleCharacteristic) {
-        try {
-            const encoder = new TextEncoder();
-            await bleCharacteristic.writeValue(encoder.encode(text));
-            return true;
-        } catch (error) {
-            console.error('Send Error:', error);
-            return false;
-        }
-    }
-    return false;
-}
+// Save API key to localStorage
+document.getElementById('saveKey').addEventListener('click', () => {
+    const apiKey = document.getElementById('apiKey').value;
+    localStorage.setItem('openai_api_key', apiKey);
+    alert('API key saved!');
+});
 
 async function makeGptRequest(prompt) {
     const apiKey = document.getElementById('apiKey').value;
@@ -79,7 +71,8 @@ async function makeGptRequest(prompt) {
     }
 }
 
-async function handleSendPrompt() {
+document.getElementById('connectBle').addEventListener('click', connectBle);
+document.getElementById('sendPrompt').addEventListener('click', async () => {
     const prompt = document.getElementById('prompt').value;
     const responseDiv = document.getElementById('response');
     
@@ -91,27 +84,15 @@ async function handleSendPrompt() {
     responseDiv.textContent = 'Getting response from GPT...';
     
     try {
-        // Get GPT response
         const gptResponse = await makeGptRequest(prompt);
         responseDiv.textContent = gptResponse;
         
-        // Send to ESP32 via Bluetooth
         if (bleCharacteristic) {
-            await sendToBle('p');  // Send 'p' to trigger sound
-            await sendToBle(gptResponse);
+            const encoder = new TextEncoder();
+            await bleCharacteristic.writeValue(encoder.encode(gptResponse));
         }
     } catch (error) {
         console.error('Error:', error);
         responseDiv.textContent = 'Error processing request';
     }
-}
-
-// Save API key to localStorage
-document.getElementById('saveKey').addEventListener('click', () => {
-    const apiKey = document.getElementById('apiKey').value;
-    localStorage.setItem('openai_api_key', apiKey);
-    alert('API key saved!');
 });
-
-document.getElementById('connectBle').addEventListener('click', connectBle);
-document.getElementById('sendPrompt').addEventListener('click', handleSendPrompt);
