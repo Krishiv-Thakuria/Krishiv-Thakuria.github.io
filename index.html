@@ -15,53 +15,51 @@
             background-color: #f0f0f0;
         }
         
-        #controls {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        button {
-            padding: 20px;
+        #connectButton {
+            padding: 20px 40px;
             font-size: 20px;
+            margin: 20px;
             border: none;
             border-radius: 10px;
-            cursor: pointer;
-            background-color: #2196F3;
-            color: white;
-            min-width: 100px;
-        }
-        
-        #connectButton {
             background-color: #4CAF50;
-            margin-bottom: 20px;
+            color: white;
+            cursor: pointer;
         }
         
-        .pressed {
-            transform: scale(0.95);
-            opacity: 0.8;
+        #joystickZone {
+            width: 200px;
+            height: 200px;
+            background-color: #ddd;
+            border-radius: 50%;
+            position: relative;
+            display: none;
         }
         
-        /* Grid layout for directional buttons */
-        #forward { grid-column: 2; grid-row: 1; }
-        #left { grid-column: 1; grid-row: 2; }
-        #right { grid-column: 3; grid-row: 2; }
-        #backward { grid-column: 2; grid-row: 3; }
+        #stick {
+            width: 50px;
+            height: 50px;
+            background-color: #2196F3;
+            border-radius: 50%;
+            position: absolute;
+            top: 75px;
+            left: 75px;
+            cursor: pointer;
+            touch-action: none;
+        }
     </style>
 </head>
 <body>
     <button id="connectButton">Connect to Car</button>
-    
-    <div id="controls" style="display: none;">
-        <button id="forward">↑</button>
-        <button id="left">←</button>
-        <button id="right">→</button>
-        <button id="backward">↓</button>
+    <div id="joystickZone">
+        <div id="stick"></div>
     </div>
 
     <script>
         let characteristic;
+        let isDragging = false;
+        let currentCommand = 'S';
+        const stick = document.getElementById('stick');
+        const zone = document.getElementById('joystickZone');
         
         async function connectToCar() {
             try {
@@ -75,49 +73,40 @@
                 characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
                 
                 document.getElementById('connectButton').style.display = 'none';
-                document.getElementById('controls').style.display = 'grid';
+                document.getElementById('joystickZone').style.display = 'block';
             } catch (error) {
                 console.error(error);
             }
         }
         
-        async function sendCommand(command) {
-            if (characteristic) {
-                try {
-                    const encoder = new TextEncoder();
-                    await characteristic.writeValue(encoder.encode(command));
-                } catch (error) {
-                    console.error(error);
-                }
+        function handleJoystick(e) {
+            if (!isDragging) return;
+            
+            const rect = zone.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            let x = e.type.includes('touch') ? 
+                e.touches[0].clientX - rect.left : 
+                e.clientX - rect.left;
+            let y = e.type.includes('touch') ? 
+                e.touches[0].clientY - rect.top : 
+                e.clientY - rect.top;
+                
+            // Limit to circle
+            const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+            if (distance > centerX) {
+                const angle = Math.atan2(y - centerY, x - centerX);
+                x = centerX + Math.cos(angle) * centerX;
+                y = centerY + Math.sin(angle) * centerY;
             }
-        }
-        
-        document.getElementById('connectButton').addEventListener('click', connectToCar);
-        
-        // Add event listeners for all direction buttons
-        ['forward', 'backward', 'left', 'right'].forEach(direction => {
-            const button = document.getElementById(direction);
-            const command = direction[0].toUpperCase(); // F, B, L, or R
             
-            button.addEventListener('touchstart', () => {
-                button.classList.add('pressed');
-                sendCommand(command);
-            });
+            stick.style.left = `${x - 25}px`;
+            stick.style.top = `${y - 25}px`;
             
-            button.addEventListener('touchend', () => {
-                button.classList.remove('pressed');
-            });
+            // Determine command based on joystick position
+            const deltaX = x - centerX;
+            const deltaY = centerY - y;  // Inverted Y axis
+            const threshold = 30;
             
-            // For desktop testing
-            button.addEventListener('mousedown', () => {
-                button.classList.add('pressed');
-                sendCommand(command);
-            });
-            
-            button.addEventListener('mouseup', () => {
-                button.classList.remove('pressed');
-            });
-        });
-    </script>
-</body>
-</html>
+            let newCommand = 'S
