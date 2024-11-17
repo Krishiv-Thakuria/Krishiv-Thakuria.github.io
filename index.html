@@ -15,48 +15,109 @@
             background-color: #f0f0f0;
         }
         
-        #connectButton {
-            padding: 20px 40px;
+        #controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 20px;
             font-size: 20px;
-            margin: 20px;
             border: none;
             border-radius: 10px;
-            background-color: #4CAF50;
-            color: white;
             cursor: pointer;
-        }
-        
-        #joystickZone {
-            width: 200px;
-            height: 200px;
-            background-color: #ddd;
-            border-radius: 50%;
-            position: relative;
-            display: none;
-            touch-action: none;
-        }
-        
-        #stick {
-            width: 60px;
-            height: 60px;
             background-color: #2196F3;
-            border-radius: 50%;
-            position: absolute;
-            top: 70px;
-            left: 70px;
-            cursor: pointer;
-            touch-action: none;
+            color: white;
+            min-width: 100px;
         }
+        
+        #connectButton {
+            background-color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        
+        .pressed {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+        
+        /* Grid layout for directional buttons */
+        #forward { grid-column: 2; grid-row: 1; }
+        #left { grid-column: 1; grid-row: 2; }
+        #right { grid-column: 3; grid-row: 2; }
+        #backward { grid-column: 2; grid-row: 3; }
     </style>
 </head>
 <body>
     <button id="connectButton">Connect to Car</button>
-    <div id="joystickZone">
-        <div id="stick"></div>
+    
+    <div id="controls" style="display: none;">
+        <button id="forward">↑</button>
+        <button id="left">←</button>
+        <button id="right">→</button>
+        <button id="backward">↓</button>
     </div>
 
     <script>
-        // Rest of your JavaScript code remains the same
+        let characteristic;
+        
+        async function connectToCar() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'CodeCell-Car' }],
+                    optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
+                });
+                
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
+                characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
+                
+                document.getElementById('connectButton').style.display = 'none';
+                document.getElementById('controls').style.display = 'grid';
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        async function sendCommand(command) {
+            if (characteristic) {
+                try {
+                    const encoder = new TextEncoder();
+                    await characteristic.writeValue(encoder.encode(command));
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+        }
+        
+        document.getElementById('connectButton').addEventListener('click', connectToCar);
+        
+        // Add event listeners for all direction buttons
+        ['forward', 'backward', 'left', 'right'].forEach(direction => {
+            const button = document.getElementById(direction);
+            const command = direction[0].toUpperCase(); // F, B, L, or R
+            
+            button.addEventListener('touchstart', () => {
+                button.classList.add('pressed');
+                sendCommand(command);
+            });
+            
+            button.addEventListener('touchend', () => {
+                button.classList.remove('pressed');
+            });
+            
+            // For desktop testing
+            button.addEventListener('mousedown', () => {
+                button.classList.add('pressed');
+                sendCommand(command);
+            });
+            
+            button.addEventListener('mouseup', () => {
+                button.classList.remove('pressed');
+            });
+        });
     </script>
 </body>
 </html>
