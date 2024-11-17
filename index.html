@@ -15,7 +15,7 @@
             background-color: #f0f0f0;
         }
         
-        #connectButton, #forwardButton {
+        #connectButton, #forwardButton, #backwardButton {
             padding: 20px 40px;
             font-size: 20px;
             margin: 10px;
@@ -34,6 +34,12 @@
             color: white;
             display: none;
         }
+
+        #backwardButton {
+            background-color: #f44336;
+            color: white;
+            display: none;
+        }
         
         .pressed {
             transform: scale(0.95);
@@ -44,6 +50,7 @@
 <body>
     <button id="connectButton">Connect to Car</button>
     <button id="forwardButton">Forward</button>
+    <button id="backwardButton">Backward</button>
 
     <script>
         let device;
@@ -62,6 +69,7 @@
                 
                 document.getElementById('connectButton').style.display = 'none';
                 document.getElementById('forwardButton').style.display = 'block';
+                document.getElementById('backwardButton').style.display = 'block';
             } catch (error) {
                 console.error(error);
                 alert('Connection failed: ' + error);
@@ -79,6 +87,18 @@
                 }
             }
         }
+
+        async function moveBackward() {
+            if (characteristic) {
+                try {
+                    const encoder = new TextEncoder();
+                    await characteristic.writeValue(encoder.encode('B'));
+                } catch (error) {
+                    console.error(error);
+                    alert('Failed to send command: ' + error);
+                }
+            }
+        }
         
         document.getElementById('connectButton').addEventListener('click', connectToCar);
         
@@ -89,6 +109,15 @@
         });
         forwardButton.addEventListener('touchend', () => {
             forwardButton.classList.remove('pressed');
+        });
+
+        const backwardButton = document.getElementById('backwardButton');
+        backwardButton.addEventListener('touchstart', () => {
+            backwardButton.classList.add('pressed');
+            moveBackward();
+        });
+        backwardButton.addEventListener('touchend', () => {
+            backwardButton.classList.remove('pressed');
         });
     </script>
 </body>
