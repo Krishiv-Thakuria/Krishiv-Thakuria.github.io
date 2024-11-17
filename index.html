@@ -18,6 +18,7 @@
         #connectButton {
             padding: 20px 40px;
             font-size: 20px;
+            margin: 20px;
             border: none;
             border-radius: 10px;
             background-color: #4CAF50;
@@ -32,7 +33,6 @@
             border-radius: 50%;
             position: relative;
             display: none;
-            margin-top: 20px;
             touch-action: none;
         }
         
@@ -58,7 +58,7 @@
     <script>
         let characteristic;
         let isDragging = false;
-        let lastCommand = '';
+        let currentCommand = 'S';
         const stick = document.getElementById('stick');
         const zone = document.getElementById('joystickZone');
         
@@ -80,18 +80,6 @@
             }
         }
         
-        async function sendCommand(command) {
-            if (characteristic && command !== lastCommand) {
-                try {
-                    const encoder = new TextEncoder();
-                    await characteristic.writeValue(encoder.encode(command));
-                    lastCommand = command;
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-        }
-
         function handleJoystick(e) {
             if (!isDragging) return;
             
@@ -105,68 +93,14 @@
             let y = e.type.includes('touch') ? 
                 e.touches[0].clientY - rect.top : 
                 e.clientY - rect.top;
-
-            // Calculate distance from center
-            const deltaX = x - centerX;
-            const deltaY = y - centerY;
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            
-            // Limit stick to circle boundary
+                
+            // Limit to circle
+            const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
             if (distance > centerX) {
-                x = centerX + (deltaX / distance) * centerX;
-                y = centerY + (deltaY / distance) * centerX;
+                const angle = Math.atan2(y - centerY, x - centerX);
+                x = centerX + Math.cos(angle) * centerX;
+                y = centerY + Math.sin(angle) * centerY;
             }
             
-            // Update stick position
-            stick.style.left = (x - 30) + 'px';
-            stick.style.top = (y - 30) + 'px';
-            
-            // Determine command based on position
-            const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
-            const deadzone = 30; // pixels from center
+            stick.style.left =
 
-            if (distance < deadzone) {
-                sendCommand('S');
-            } else {
-                // Divide circle into 4 quadrants
-                if (angle > -45 && angle <= 45) sendCommand('R');
-                else if (angle > 45 && angle <= 135) sendCommand('B');
-                else if (angle > 135 || angle <= -135) sendCommand('L');
-                else if (angle > -135 && angle <= -45) sendCommand('F');
-            }
-        }
-        
-        document.getElementById('connectButton').addEventListener('click', connectToCar);
-        
-        // Touch Events
-        stick.addEventListener('touchstart', (e) => {
-            isDragging = true;
-            e.preventDefault();
-        });
-        
-        document.addEventListener('touchend', () => {
-            isDragging = false;
-            stick.style.left = '70px';
-            stick.style.top = '70px';
-            sendCommand('S');
-        });
-        
-        document.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            handleJoystick(e);
-        });
-        
-        // Mouse Events (for testing)
-        stick.addEventListener('mousedown', () => isDragging = true);
-        
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            stick.style.left = '70px';
-            stick.style.top = '70px';
-            sendCommand('S');
-        });
-        
-        document.addEventListener('mousemove', handleJoystick);
-    </script>
-</body>
-</html>
