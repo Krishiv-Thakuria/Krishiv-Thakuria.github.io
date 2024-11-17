@@ -1,4 +1,4 @@
-const OPENAI_API_KEY = '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';  // Your API key here
+const OPENAI_API_KEY = '';  // Your API key here
 
 async function makeGptRequest(prompt) {
     try {
