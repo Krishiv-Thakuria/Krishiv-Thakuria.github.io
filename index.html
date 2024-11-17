@@ -52,7 +52,6 @@
         <button id="right">→</button>
         <button id="backward">↓</button>
     </div>
-
     <script>
         let characteristic;
         
@@ -87,10 +86,18 @@
         
         document.getElementById('connectButton').addEventListener('click', connectToCar);
         
+        // Define command mapping
+        const commandMap = {
+            'forward': 'F',
+            'backward': 'B',
+            'left': 'L',
+            'right': 'R'
+        };
+        
         // Add event listeners for all direction buttons
-        ['forward', 'backward', 'left', 'right'].forEach(direction => {
+        Object.keys(commandMap).forEach(direction => {
             const button = document.getElementById(direction);
-            const command = direction[0].toUpperCase(); // F, B, L, or R
+            const command = commandMap[direction];  // Get the correct command from our mapping
             
             button.addEventListener('touchstart', () => {
                 button.classList.add('pressed');
