@@ -15,52 +15,46 @@
             background-color: #f0f0f0;
         }
         
-        #connectButton {
-            padding: 20px 40px;
+        #controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 20px;
             font-size: 20px;
-            margin: 20px;
             border: none;
             border-radius: 10px;
-            background-color: #4CAF50;
-            color: white;
             cursor: pointer;
-        }
-        
-        #joystickZone {
-            width: 200px;
-            height: 200px;
-            background-color: #ddd;
-            border-radius: 50%;
-            position: relative;
-            display: none;
-            touch-action: none;
-        }
-        
-        #stick {
-            width: 60px;
-            height: 60px;
             background-color: #2196F3;
-            border-radius: 50%;
-            position: absolute;
-            top: 70px;
-            left: 70px;
-            cursor: pointer;
-            touch-action: none;
+            color: white;
+            min-width: 100px;
         }
+        
+        #connectButton {
+            background-color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        
+        #forward { grid-column: 2; grid-row: 1; }
+        #left { grid-column: 1; grid-row: 2; }
+        #right { grid-column: 3; grid-row: 2; }
+        #backward { grid-column: 2; grid-row: 3; }
     </style>
 </head>
 <body>
     <button id="connectButton">Connect to Car</button>
-    <div id="joystickZone">
-        <div id="stick"></div>
+    <div id="controls" style="display: none;">
+        <button id="forward">↑</button>
+        <button id="left">←</button>
+        <button id="right">→</button>
+        <button id="backward">↓</button>
     </div>
 
     <script>
         let characteristic;
-        let isDragging = false;
-        let currentCommand = 'S';
-        const stick = document.getElementById('stick');
-        const zone = document.getElementById('joystickZone');
         
         async function connectToCar() {
             try {
@@ -74,99 +68,4 @@
                 characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
                 
                 document.getElementById('connectButton').style.display = 'none';
-                document.getElementById('joystickZone').style.display = 'block';
-            } catch (error) {
-                console.error(error);
-            }
-        }
-        
-        function handleJoystick(e) {
-            if (!isDragging) return;
-            
-            const rect = zone.getBoundingClientRect();
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            
-            let x = e.type.includes('touch') ? 
-                e.touches[0].clientX - rect.left : 
-                e.clientX - rect.left;
-            let y = e.type.includes('touch') ? 
-                e.touches[0].clientY - rect.top : 
-                e.clientY - rect.top;
-                
-            // Limit to circle
-            const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-            if (distance > centerX) {
-                const angle = Math.atan2(y - centerY, x - centerX);
-                x = centerX + Math.cos(angle) * centerX;
-                y = centerY + Math.sin(angle) * centerY;
-            }
-            
-            stick.style.left = `${x - 30}px`;
-            stick.style.top = `${y - 30}px`;
-            
-            // Determine command based on joystick position
-            const deltaX = x - centerX;
-            const deltaY = y - centerY;
-            const threshold = 30;
-            
-            let newCommand = 'S';
-            if (Math.abs(deltaY) > Math.abs(deltaX)) {
-                if (deltaY < -threshold) newCommand = 'F';  // Up = Forward
-                else if (deltaY > threshold) newCommand = 'B';  // Down = Backward
-            } else {
-                if (deltaX > threshold) newCommand = 'R';  // Right
-                else if (deltaX < -threshold) newCommand = 'L';  // Left
-            }
-            
-            if (newCommand !== currentCommand) {
-                currentCommand = newCommand;
-                sendCommand(currentCommand);
-            }
-        }
-        
-        async function sendCommand(command) {
-            if (characteristic) {
-                try {
-                    const encoder = new TextEncoder();
-                    await characteristic.writeValue(encoder.encode(command));
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-        }
-        
-        document.getElementById('connectButton').addEventListener('click', connectToCar);
-        
-        // Touch events
-        stick.addEventListener('touchstart', (e) => {
-            isDragging = true;
-            e.preventDefault();
-        });
-        
-        document.addEventListener('touchend', () => {
-            isDragging = false;
-            stick.style.left = '70px';
-            stick.style.top = '70px';
-            sendCommand('S');
-            currentCommand = 'S';
-        });
-        
-        document.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            handleJoystick(e);
-        });
-        
-        // Mouse events for testing
-        stick.addEventListener('mousedown', () => isDragging = true);
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            stick.style.left = '70px';
-            stick.style.top = '70px';
-            sendCommand('S');
-            currentCommand = 'S';
-        });
-        document.addEventListener('mousemove', handleJoystick);
-    </script>
-</body>
-</html>
+                document.getElementById('controls').style.display =
