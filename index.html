@@ -1,40 +1,172 @@
-class MyCallbacks: public BLECharacteristicCallbacks {
-    void onWrite(BLECharacteristic *pCharacteristic) {
-      String rxValue = pCharacteristic->getValue().c_str();
-      Serial.print("Received Value: ");
-      Serial.println(rxValue);
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CodeCell Car Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        
+        #connectButton {
+            padding: 20px 40px;
+            font-size: 20px;
+            margin: 20px;
+            border: none;
+            border-radius: 10px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        
+        #joystickZone {
+            width: 200px;
+            height: 200px;
+            background-color: #ddd;
+            border-radius: 50%;
+            position: relative;
+            display: none;
+            touch-action: none;
+        }
+        
+        #stick {
+            width: 60px;
+            height: 60px;
+            background-color: #2196F3;
+            border-radius: 50%;
+            position: absolute;
+            top: 70px;
+            left: 70px;
+            cursor: pointer;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <button id="connectButton">Connect to Car</button>
+    <div id="joystickZone">
+        <div id="stick"></div>
+    </div>
 
-      // Stop all motors first
-      digitalWrite(leftWheel, LOW);
-      digitalWrite(leftWheelBack, LOW);
-      digitalWrite(rightWheel, LOW);
-      digitalWrite(rightWheelBack, LOW);
-
-      if (rxValue.length() > 0) {
-        if (rxValue[0] == 'F') {
-          Serial.println("Moving forward!");
-          digitalWrite(leftWheel, HIGH);
-          digitalWrite(rightWheel, HIGH);
-        } 
-        else if (rxValue[0] == 'B') {
-          Serial.println("Moving backward!");
-          digitalWrite(leftWheelBack, HIGH);
-          digitalWrite(rightWheelBack, HIGH);
+    <script>
+        let characteristic;
+        let isDragging = false;
+        let currentCommand = 'S';
+        const stick = document.getElementById('stick');
+        const zone = document.getElementById('joystickZone');
+        
+        async function connectToCar() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'CodeCell-Car' }],
+                    optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
+                });
+                
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
+                characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
+                
+                document.getElementById('connectButton').style.display = 'none';
+                document.getElementById('joystickZone').style.display = 'block';
+            } catch (error) {
+                console.error(error);
+            }
         }
-        else if (rxValue[0] == 'L') {
-          Serial.println("Turning left!");
-          digitalWrite(rightWheel, HIGH);      // Right wheel forward
-          digitalWrite(leftWheelBack, HIGH);   // Left wheel backward
+        
+        function handleJoystick(e) {
+            if (!isDragging) return;
+            
+            const rect = zone.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            let x = e.type.includes('touch') ? 
+                e.touches[0].clientX - rect.left : 
+                e.clientX - rect.left;
+            let y = e.type.includes('touch') ? 
+                e.touches[0].clientY - rect.top : 
+                e.clientY - rect.top;
+                
+            // Limit to circle
+            const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+            if (distance > centerX) {
+                const angle = Math.atan2(y - centerY, x - centerX);
+                x = centerX + Math.cos(angle) * centerX;
+                y = centerY + Math.sin(angle) * centerY;
+            }
+            
+            stick.style.left = `${x - 30}px`;
+            stick.style.top = `${y - 30}px`;
+            
+            // Determine command based on joystick position
+            const deltaX = x - centerX;
+            const deltaY = centerY - y;  // Inverted Y axis
+            const threshold = 30;
+            
+            let newCommand = 'S';
+            if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                if (deltaY > threshold) newCommand = 'F';
+                else if (deltaY < -threshold) newCommand = 'B';
+            } else {
+                if (deltaX > threshold) newCommand = 'R';
+                else if (deltaX < -threshold) newCommand = 'L';
+            }
+            
+            if (newCommand !== currentCommand) {
+                currentCommand = newCommand;
+                sendCommand(currentCommand);
+            }
         }
-        else if (rxValue[0] == 'R') {
-          Serial.println("Turning right!");
-          digitalWrite(leftWheel, HIGH);       // Left wheel forward
-          digitalWrite(rightWheelBack, HIGH);  // Right wheel backward
+        
+        async function sendCommand(command) {
+            if (characteristic) {
+                try {
+                    const encoder = new TextEncoder();
+                    await characteristic.writeValue(encoder.encode(command));
+                } catch (error) {
+                    console.error(error);
+                }
+            }
         }
-        else if (rxValue[0] == 'S') {
-          Serial.println("Stopped");
-          // Motors already stopped at beginning of onWrite
-        }
-      }
-    }
-};
+        
+        document.getElementById('connectButton').addEventListener('click', connectToCar);
+        
+        // Touch events
+        stick.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            e.preventDefault();
+        });
+        
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+            stick.style.left = '70px';
+            stick.style.top = '70px';
+            sendCommand('S');
+            currentCommand = 'S';
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            handleJoystick(e);
+        });
+        
+        // Mouse events for testing
+        stick.addEventListener('mousedown', () => isDragging = true);
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            stick.style.left = '70px';
+            stick.style.top = '70px';
+            sendCommand('S');
+            currentCommand = 'S';
+        });
+        document.addEventListener('mousemove', handleJoystick);
+    </script>
+</body>
+</html>
