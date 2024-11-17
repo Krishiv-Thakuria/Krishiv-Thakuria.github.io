@@ -1,28 +1,95 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CodeCell GPT Interface</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>CodeCell Car Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        
+        #connectButton, #forwardButton {
+            padding: 20px 40px;
+            font-size: 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        #connectButton {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        #forwardButton {
+            background-color: #2196F3;
+            color: white;
+            display: none;
+        }
+        
+        .pressed {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>CodeCell GPT Interface</h1>
+    <button id="connectButton">Connect to Car</button>
+    <button id="forwardButton">Forward</button>
+
+    <script>
+        let device;
+        let characteristic;
         
-        <div class="connection-status">
-            <button id="connectBle">Connect to CodeCell</button>
-            <span id="statusText">Not Connected</span>
-        </div>
+        async function connectToCar() {
+            try {
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'CodeCell-Car' }],
+                    optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
+                });
+                
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
+                characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
+                
+                document.getElementById('connectButton').style.display = 'none';
+                document.getElementById('forwardButton').style.display = 'block';
+            } catch (error) {
+                console.error(error);
+                alert('Connection failed: ' + error);
+            }
+        }
         
-        <div class="input-section">
-            <textarea id="prompt" placeholder="Enter your prompt for GPT..."></textarea>
-            <button id="sendPrompt">Send to GPT</button>
-        </div>
+        async function moveForward() {
+            if (characteristic) {
+                try {
+                    const encoder = new TextEncoder();
+                    await characteristic.writeValue(encoder.encode('F'));
+                } catch (error) {
+                    console.error(error);
+                    alert('Failed to send command: ' + error);
+                }
+            }
+        }
         
-        <div class="response-section">
-            <h2>Response:</h2>
-            <div id="response"></div>
-        </div>
-    </div>
-    <script src="script.js"></script>
+        document.getElementById('connectButton').addEventListener('click', connectToCar);
+        
+        const forwardButton = document.getElementById('forwardButton');
+        forwardButton.addEventListener('touchstart', () => {
+            forwardButton.classList.add('pressed');
+            moveForward();
+        });
+        forwardButton.addEventListener('touchend', () => {
+            forwardButton.classList.remove('pressed');
+        });
+    </script>
 </body>
 </html>
