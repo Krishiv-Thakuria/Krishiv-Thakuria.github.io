@@ -3,6 +3,9 @@ let bleCharacteristic;
 const serviceUuid = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
 const characteristicUuid = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 
+// Load API key from localStorage if it exists
+document.getElementById('apiKey').value = localStorage.getItem('openai_api_key') || '';
+
 async function connectBle() {
     try {
         bleDevice = await navigator.bluetooth.requestDevice({
@@ -45,7 +48,38 @@ async function sendToBle(text) {
     return false;
 }
 
-async function sendPrompt() {
+async function makeGptRequest(prompt) {
+    const apiKey = document.getElementById('apiKey').value;
+    if (!apiKey) {
+        alert('Please enter your OpenAI API key');
+        return;
+    }
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: "gpt-3.5-turbo",
+                messages: [{
+                    role: "user",
+                    content: prompt
+                }]
+            })
+        });
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    } catch (error) {
+        console.error('GPT API Error:', error);
+        return 'Error: Could not get response from GPT';
+    }
+}
+
+async function handleSendPrompt() {
     const prompt = document.getElementById('prompt').value;
     const responseDiv = document.getElementById('response');
     
@@ -54,21 +88,30 @@ async function sendPrompt() {
         return;
     }
     
-    responseDiv.textContent = 'Sending request...';
+    responseDiv.textContent = 'Getting response from GPT...';
     
     try {
-        // Send 'p' to trigger sound
-        await sendToBle('p');
+        // Get GPT response
+        const gptResponse = await makeGptRequest(prompt);
+        responseDiv.textContent = gptResponse;
         
-        // Send the actual response text
-        await sendToBle(prompt);
-        
-        responseDiv.textContent = `Sent: ${prompt}`;
+        // Send to ESP32 via Bluetooth
+        if (bleCharacteristic) {
+            await sendToBle('p');  // Send 'p' to trigger sound
+            await sendToBle(gptResponse);
+        }
     } catch (error) {
         console.error('Error:', error);
-        responseDiv.textContent = 'Error sending prompt';
+        responseDiv.textContent = 'Error processing request';
     }
 }
 
+// Save API key to localStorage
+document.getElementById('saveKey').addEventListener('click', () => {
+    const apiKey = document.getElementById('apiKey').value;
+    localStorage.setItem('openai_api_key', apiKey);
+    alert('API key saved!');
+});
+
 document.getElementById('connectBle').addEventListener('click', connectBle);
-document.getElementById('sendPrompt').addEventListener('click', sendPrompt);
+document.getElementById('sendPrompt').addEventListener('click', handleSendPrompt);
