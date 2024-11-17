@@ -1,37 +1,28 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>CodeCell GPT Interface</title>
-    <!-- ... same styles ... -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- ... same HTML ... -->
-    <script>
-        async function sendToGPT() {
-            const prompt = document.getElementById('prompt').value;
-            
-            try {
-                // Call our backend instead of OpenAI directly
-                const response = await fetch('/api/gpt', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: "gpt-3.5-turbo",
-                        messages: [{
-                            role: "user",
-                            content: prompt
-                        }]
-                    })
-                });
-
-                const data = await response.json();
-                // ... rest of the code ...
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-    </script>
+    <div class="container">
+        <h1>CodeCell GPT Interface</h1>
+        <div class="connection-status">
+            <button id="connectBle">Connect to CodeCell</button>
+            <span id="statusText">Not Connected</span>
+        </div>
+        
+        <div class="input-section">
+            <textarea id="prompt" placeholder="Enter your prompt for GPT..."></textarea>
+            <button id="sendPrompt">Send to GPT</button>
+        </div>
+        
+        <div class="response-section">
+            <h2>Response:</h2>
+            <div id="response"></div>
+        </div>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
+
