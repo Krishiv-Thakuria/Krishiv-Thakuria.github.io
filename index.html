@@ -7,9 +7,15 @@
 <body>
     <div class="container">
         <h1>CodeCell GPT Interface</h1>
+        
         <div class="connection-status">
             <button id="connectBle">Connect to CodeCell</button>
             <span id="statusText">Not Connected</span>
+        </div>
+
+        <div class="api-key-section">
+            <input type="password" id="apiKey" placeholder="Enter your OpenAI API key">
+            <button id="saveKey">Save API Key</button>
         </div>
         
         <div class="input-section">
@@ -22,7 +28,7 @@
             <div id="response"></div>
         </div>
     </div>
+    <script src="config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
-
