@@ -102,5 +102,71 @@
                 y = centerY + Math.sin(angle) * centerY;
             }
             
-            stick.style.left =
-
+            stick.style.left = `${x - 30}px`;
+            stick.style.top = `${y - 30}px`;
+            
+            // Determine command based on joystick position
+            const deltaX = x - centerX;
+            const deltaY = y - centerY;
+            const threshold = 30;
+            
+            let newCommand = 'S';
+            if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                if (deltaY < -threshold) newCommand = 'F';  // Up = Forward
+                else if (deltaY > threshold) newCommand = 'B';  // Down = Backward
+            } else {
+                if (deltaX > threshold) newCommand = 'R';  // Right
+                else if (deltaX < -threshold) newCommand = 'L';  // Left
+            }
+            
+            if (newCommand !== currentCommand) {
+                currentCommand = newCommand;
+                sendCommand(currentCommand);
+            }
+        }
+        
+        async function sendCommand(command) {
+            if (characteristic) {
+                try {
+                    const encoder = new TextEncoder();
+                    await characteristic.writeValue(encoder.encode(command));
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+        }
+        
+        document.getElementById('connectButton').addEventListener('click', connectToCar);
+        
+        // Touch events
+        stick.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            e.preventDefault();
+        });
+        
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+            stick.style.left = '70px';
+            stick.style.top = '70px';
+            sendCommand('S');
+            currentCommand = 'S';
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            handleJoystick(e);
+        });
+        
+        // Mouse events for testing
+        stick.addEventListener('mousedown', () => isDragging = true);
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            stick.style.left = '70px';
+            stick.style.top = '70px';
+            sendCommand('S');
+            currentCommand = 'S';
+        });
+        document.addEventListener('mousemove', handleJoystick);
+    </script>
+</body>
+</html>
