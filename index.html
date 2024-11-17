@@ -30,6 +30,10 @@
             background-color: #4CAF50;
         }
         
+        #backwardButton {
+            background-color: #f44336;
+        }
+        
         .pressed {
             transform: scale(0.95);
             opacity: 0.8;
@@ -39,59 +43,4 @@
 <body>
     <button id="connectButton">Connect to Car</button>
     <button id="forwardButton" style="display: none;">Forward</button>
-
-    <script>
-        let characteristic;
-        
-        async function connectToCar() {
-            try {
-                const device = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: 'Car-Control' }],
-                    optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
-                });
-                
-                const server = await device.gatt.connect();
-                const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
-                characteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
-                
-                document.getElementById('connectButton').style.display = 'none';
-                document.getElementById('forwardButton').style.display = 'block';
-            } catch (error) {
-                console.error(error);
-            }
-        }
-        
-        async function sendCommand(command) {
-            if (characteristic) {
-                try {
-                    const encoder = new TextEncoder();
-                    await characteristic.writeValue(encoder.encode(command));
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-        }
-        
-        document.getElementById('connectButton').addEventListener('click', connectToCar);
-        
-        const forwardButton = document.getElementById('forwardButton');
-        forwardButton.addEventListener('touchstart', () => {
-            forwardButton.classList.add('pressed');
-            sendCommand('F');
-        });
-        forwardButton.addEventListener('touchend', () => {
-            forwardButton.classList.remove('pressed');
-        });
-        
-        // For desktop testing
-        forwardButton.addEventListener('mousedown', () => {
-            forwardButton.classList.add('pressed');
-            sendCommand('F');
-        });
-        forwardButton.addEventListener('mouseup', () => {
-            forwardButton.classList.remove('pressed');
-        });
-    </script>
-</body>
-</html>
-
+    <button id="backwardButton" style="display: none;">Backward</button>
